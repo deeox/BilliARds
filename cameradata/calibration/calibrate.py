@@ -5,6 +5,7 @@ import imutils
 import time
 from perspTransform import four_point_transform
 
+
 def get_img():
     array, _ = freenect.sync_get_video()
     array = cv2.cvtColor(array, cv2.COLOR_RGB2BGR)
@@ -147,10 +148,11 @@ def preprocess(images):
         upper_green = np.array([100, 246, 255])
         mask = cv2.inRange(hsv, lower_green, upper_green)
         res = cv2.bitwise_and(img, img, mask=mask)
-        dst = cv2.fastNlMeansDenoisingColored(res, None, 10, 10, 7, 21)
+        #dst = cv2.fastNlMeansDenoisingColored(res, None, 8, 8, 7, 21)
         kernel = np.ones((6, 6), np.uint8)
-
-        edges = cv2.Canny(dst, 80, 200, apertureSize=3)
+        blur = cv2.GaussianBlur(res, (5, 5), 0)
+        smooth = cv2.addWeighted(blur, 1.5, res, -0.5, 0)
+        edges = cv2.Canny(smooth, 40, 100, apertureSize=3)
         close = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
         processed.append(close)
 
@@ -181,8 +183,8 @@ def drawHoughLines(img, h_lines, v_lines):
             y2 = int(y0 - 3000 * (a))
             cv2.line(houghimg, (x1, y1), (x2, y2), color=color, thickness=1)
             n += 1
-        if n == 10:
-            break
+        #if n == 10:
+            #break
     #print(n)
     for line in v_lines:
         for rho, theta in line:
@@ -197,15 +199,15 @@ def drawHoughLines(img, h_lines, v_lines):
             y2 = int(y0 - 3000 * (a))
             cv2.line(houghimg, (x1, y1), (x2, y2), color=color, thickness=1)
             n += 1
-        if n == 10:
-            break
+        #if n == 10:
+            #break
     #print(n)
     return houghimg
 
 
 if __name__ == "__main__":
     a = time.time()
-    images = read_data(2)
+    images = read_data(3)
 
     x_c, y_c = (int(images[0].shape[1] / 2), int(images[0].shape[0] / 2))
     imgs_copy = images
@@ -214,7 +216,7 @@ if __name__ == "__main__":
 
     lines = HoughLines(processedImgs)
     # print(lines)
-    delta = 10
+    delta = 100
     h_lines, v_lines = segment_lines(lines, delta)
 
     cv2.imshow("Segmented Hough Lines", imutils.resize(drawHoughLines(imgs_copy[0], h_lines, v_lines), height=320))
@@ -230,6 +232,13 @@ if __name__ == "__main__":
     cv2.imshow("warped", imutils.resize(warped, height=250))
 
     depthImg = get_depth()
+    Np = 1
+    #for i in range(Np):
+    #    depthImg = depthImg + cv2.cvtColor(get_img(), cv2.COLOR_BGR2GRAY)
+    #    print(depthImg[35, 35])
+
+
+    cv2.imshow("origDepth", imutils.resize(depthImg, height=320))
     warped = four_point_transform(depthImg, corners)
     cv2.imshow("warpedDepth", imutils.resize(warped, height=250))
     b = time.time()

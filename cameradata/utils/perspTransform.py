@@ -35,7 +35,7 @@ def four_point_transform(image, pts):
 
     # compute the width of the new image, which will be the
     # maximum distance between bottom-right and bottom-left
-    # x-coordiates or the top-right and top-left x-coordinates
+    # x-coordinates or the top-right and top-left x-coordinates
     widthA = np.sqrt(((br[0] - bl[0]) ** 2) + ((br[1] - bl[1]) ** 2))
     widthB = np.sqrt(((tr[0] - tl[0]) ** 2) + ((tr[1] - tl[1]) ** 2))
     maxWidth = max(int(widthA), int(widthB))
