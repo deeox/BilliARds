@@ -11,8 +11,7 @@ import queue
 def get_video(pts):
     array, _ = freenect.sync_get_video()
     array = cv2.cvtColor(array, cv2.COLOR_RGB2BGR)
-    print(array.shape)
-    return array
+    return four_point_transform(array, pts)
 
 
 def get_depth(pts):
@@ -28,12 +27,12 @@ def qlist(q):
 pts = get_points(1)
 M = pts[1][0] - pts[0][0]
 print(M)
-Np = 10
+Np = 8
 imageQ = queue.Queue(maxsize=Np)
-wt = 0          # 0 is no motion, 1 is motion at t
-wt_1 = 0        # 0 is no motion, 1 is motion at t_1
-Kt = 0          # Counter
-K1 = 0.7 * M
+wt = 0  # 0 is no motion, 1 is motion at t
+wt_1 = 0  # 0 is no motion, 1 is motion at t_1
+Kt = 0  # Counter
+K1 = 600  # 0.7 * M
 K2 = 3
 print(K1)
 while 1:
@@ -43,7 +42,6 @@ while 1:
         imageQ.put(get_depth(pts))
         continue
 
-
     motionMat = np.zeros(get_depth(pts).shape)
     for i in range(Np - 2, -1, -1):
         motionMat += cv2.absdiff(qlist(imageQ)[Np - 1], qlist(imageQ)[i])
@@ -52,7 +50,7 @@ while 1:
     motionBin = np.zeros(motionMat.shape)
     motionBin[motionMat >= Tm] = 1
 
-    Cmt,_,_,_ = cv2.sumElems(motionBin)
+    Cmt, _, _, _ = cv2.sumElems(motionBin)
     print(Cmt)
 
     if wt == 0:
@@ -81,11 +79,11 @@ while 1:
                 wt = 1
                 Kt = 0
         elif wt_1 == 0 and Kt < K2:
-                wt = 0
-                Kt = 0
+            wt = 0
+            Kt = 0
         elif wt_1 == 1 and Kt < K2:
-                wt = 1
-                Kt = 0
+            wt = 1
+            Kt = 0
 
     imageQ.get()
     imageQ.put(get_depth(pts))
@@ -97,7 +95,7 @@ while 1:
     cv2.imshow("motionDepth", imutils.resize(motionMat, height=320))
     cv2.imshow("Binary", imutils.resize(motionBin, height=320))
     b = time.time()
-    #print(1/(b-a))         #show fps
+    # print(1/(b-a))         #show fps
     wt_1 = wt
     k = cv2.waitKey(5) & 0xFF
     if k == 27:

@@ -3,7 +3,8 @@ import cv2
 import numpy as np
 import imutils
 import time
-from perspTransform import four_point_transform
+from cameradata.utils.perspTransform import four_point_transform
+from cameradata.utils.get_pts_gui import get_points
 
 
 def get_img():
@@ -78,31 +79,50 @@ def find_req_lines(im, h_lines, v_lines, x_c, y_c):
     max_line_x = None
     min_line_y = None
     max_line_y = None
+    intersectsimg = im.copy()
 
     for line in h_lines:
         for rho, theta in line:
+            color = [255, 0, 0]  # color hoz lines red
+            a = np.cos(theta)
             b = np.sin(theta)
+            x0 = a * rho
             y0 = b * rho
-            diff = y_c - y0
+            x1 = int(x0 + 3000 * (-b))
+            y1 = int(y0 + 3000 * (a))
+            x2 = int(x0 - 3000 * (-b))
+            y2 = int(y0 - 3000 * (a))
+            cv2.line(intersectsimg, (x1, y1), (x2, y2), color=color, thickness=1)
+
+            diff = y_c - y2
+            print((y0, y1, y2, diff))
             if diff > 0 and diff < min_pos_y:
                 min_line_y = line
             if diff < 0 and diff > max_neg_y:
                 max_line_y = line
     for line in v_lines:
         for rho, theta in line:
+            color = [0, 0, 255]
             a = np.cos(theta)
+            b = np.sin(theta)
             x0 = a * rho
-            diff = x_c - x0
+            y0 = b * rho
+            x1 = int(x0 + 3000 * (-b))
+            y1 = int(y0 + 3000 * (a))
+            x2 = int(x0 - 3000 * (-b))
+            y2 = int(y0 - 3000 * (a))
+            cv2.line(intersectsimg, (x1, y1), (x2, y2), color=color, thickness=1)
+
+            diff = x_c - x2
             if diff > 0 and diff < min_pos_x:
                 min_line_x = line  # sahi hai
             if diff < 0 and diff > max_neg_x:
                 max_line_x = line
 
     req_h = [min_line_y, max_line_y]
-    #print(req_h)
+    # print(req_h)
     req_v = [min_line_x, max_line_x]
-    #print(req_v)
-    intersectsimg = im.copy()
+    # print(req_v)
 
     Px = []
     Py = []
@@ -148,11 +168,12 @@ def preprocess(images):
         upper_green = np.array([100, 246, 255])
         mask = cv2.inRange(hsv, lower_green, upper_green)
         res = cv2.bitwise_and(img, img, mask=mask)
-        #dst = cv2.fastNlMeansDenoisingColored(res, None, 8, 8, 7, 21)
+        # dst = cv2.fastNlMeansDenoisingColored(res, None, 8, 8, 7, 21)
         kernel = np.ones((6, 6), np.uint8)
         blur = cv2.GaussianBlur(res, (5, 5), 0)
         smooth = cv2.addWeighted(blur, 1.5, res, -0.5, 0)
         edges = cv2.Canny(smooth, 40, 100, apertureSize=3)
+        cv2.imshow("name", edges)
         close = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
         processed.append(close)
 
@@ -171,6 +192,7 @@ def drawHoughLines(img, h_lines, v_lines):
     houghimg = img.copy()
     n = 0
     for line in h_lines:
+        n += 1
         for rho, theta in line:
             color = [0, 0, 255]  # color hoz lines red
             a = np.cos(theta)
@@ -182,10 +204,10 @@ def drawHoughLines(img, h_lines, v_lines):
             x2 = int(x0 - 3000 * (-b))
             y2 = int(y0 - 3000 * (a))
             cv2.line(houghimg, (x1, y1), (x2, y2), color=color, thickness=1)
-            n += 1
-        #if n == 10:
-            #break
-    #print(n)
+            # n += 1
+        # if n == 10:
+        # break
+    print(n)
     for line in v_lines:
         for rho, theta in line:
             color = [255, 0, 0]  # color vert lines blue
@@ -199,10 +221,18 @@ def drawHoughLines(img, h_lines, v_lines):
             y2 = int(y0 - 3000 * (a))
             cv2.line(houghimg, (x1, y1), (x2, y2), color=color, thickness=1)
             n += 1
-        #if n == 10:
-            #break
-    #print(n)
+        # if n == 10:
+        # break
+    # print(n)
     return houghimg
+
+
+
+def get_cue_reference():
+    """Frame with balls"""
+    pts = get_points(1)
+    img = get_depth(pts)
+    return img
 
 
 if __name__ == "__main__":
@@ -233,10 +263,9 @@ if __name__ == "__main__":
 
     depthImg = get_depth()
     Np = 1
-    #for i in range(Np):
+    # for i in range(Np):
     #    depthImg = depthImg + cv2.cvtColor(get_img(), cv2.COLOR_BGR2GRAY)
     #    print(depthImg[35, 35])
-
 
     cv2.imshow("origDepth", imutils.resize(depthImg, height=320))
     warped = four_point_transform(depthImg, corners)
@@ -246,5 +275,3 @@ if __name__ == "__main__":
     print(b - a)
     cv2.waitKey()
     cv2.destroyAllWindows()
-
-
