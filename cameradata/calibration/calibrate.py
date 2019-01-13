@@ -183,7 +183,7 @@ def preprocess(images):
 def HoughLines(procImgs):
     lines = []
     for img in procImgs:
-        lines.extend(cv2.HoughLines(img, 1, np.pi / 180, 60))
+        lines.extend(cv2.HoughLines(img, 1, np.pi / 180, 80))
 
     return np.array(lines)
 

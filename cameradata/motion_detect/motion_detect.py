@@ -44,6 +44,7 @@ while 1:
 
     motionMat = np.zeros(get_depth(pts).shape)
     for i in range(Np - 2, -1, -1):
+        # noinspection PyTypeChecker
         motionMat += cv2.absdiff(qlist(imageQ)[Np - 1], qlist(imageQ)[i])
 
     Tm = 0.0015 * 65535

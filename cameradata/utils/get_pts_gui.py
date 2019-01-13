@@ -11,7 +11,6 @@ i = 0
 def get_video():
     array, _ = freenect.sync_get_video()
     array = cv2.cvtColor(array, cv2.COLOR_RGB2BGR)
-    print(array.shape)
     return array
 
 
@@ -74,7 +73,8 @@ def get_points(imgType=0):
     cv2.imshow("ROI", warped)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
+    refPt = []
+    i = 0
     return pts_order
 
 
