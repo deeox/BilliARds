@@ -1,3 +1,4 @@
+import sys, os
 import freenect
 import cv2
 import numpy as np
@@ -6,6 +7,7 @@ import time
 from cameradata.utils.perspTransform import four_point_transform
 from cameradata.utils.get_pts_gui import get_points
 import queue
+import pickle
 
 
 def get_video(pts):
@@ -23,8 +25,9 @@ def get_depth(pts):
 def qlist(q):
     return list(q.queue)
 
+with open('../../sys_setup/pts_depth.pkl', 'rb') as input:
+    pts = pickle.load(input)
 
-pts = get_points(1)
 M = pts[1][0] - pts[0][0]
 print(M)
 Np = 8
@@ -32,11 +35,11 @@ imageQ = queue.Queue(maxsize=Np)
 wt = 0  # 0 is no motion, 1 is motion at t
 wt_1 = 0  # 0 is no motion, 1 is motion at t_1
 Kt = 0  # Counter
-K1 = 600  # 0.7 * M
+K1 = 900  # 0.7 * M
 K2 = 3
 print(K1)
 while 1:
-    cv2.imshow("origDepth", imutils.resize(get_depth(pts), height=320))
+    #cv2.imshow("origDepth", imutils.resize(get_depth(pts), height=320))
     a = time.time()
     if imageQ.full() is False:
         imageQ.put(get_depth(pts))
@@ -93,7 +96,7 @@ while 1:
     cv2.putText(motionBin, 'wt=' + str(wt), (int(0), int(25)), font, 1, (255), 2, cv2.LINE_AA)
     cv2.putText(motionBin, 'wt_1=' + str(wt_1), (int(0), int(52)), font, 1, (255), 2, cv2.LINE_AA)
     cv2.putText(motionBin, 'Kt=' + str(Kt), (int(0), int(79)), font, 1, (255), 2, cv2.LINE_AA)
-    cv2.imshow("motionDepth", imutils.resize(motionMat, height=320))
+    #cv2.imshow("motionDepth", imutils.resize(motionMat, height=320))
     cv2.imshow("Binary", imutils.resize(motionBin, height=320))
     b = time.time()
     # print(1/(b-a))         #show fps

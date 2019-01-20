@@ -6,6 +6,7 @@ from cameradata.utils.perspTransform import four_point_transform
 from cameradata.utils.get_pts_gui import get_points
 from time import sleep
 from operator import itemgetter
+import pickle
 
 
 def get_video(pts):
@@ -35,7 +36,7 @@ def get_ball_contours(pts, Ra):
     ballFrame = get_ball_diff(pts, Ra)
     # cv2.imshow("2", imutils.resize(ballFrame, height=320))
 
-    Bw = 29
+    Bw = 20
     Tb = (13 / 16) * Bw
     ballBin = np.zeros(ballFrame.shape, np.uint8)
     ballBin[ballFrame > Tb] = 255
@@ -45,7 +46,7 @@ def get_ball_contours(pts, Ra):
     ballErode = cv2.erode(ballBin, np.ones((7, 7), np.uint8))
     # cv2.imshow("4", imutils.resize(ballErode, height=320))
 
-    _, contours, hierarchy = cv2.findContours(ballErode, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(ballErode, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     return contours
 
 
@@ -103,9 +104,12 @@ def get_white_ball(img_rgb, img_depth, contours):
 
     return max_cnt_index, max_cnt, img_rgb
 
+with open('../../sys_setup/pts_depth.pkl', 'rb') as input1:
+    pts_depth = pickle.load(input1)
 
-pts_depth = get_points(1)
-pts_rgb = get_points(0)
+with open('../../sys_setup/pts_rgb.pkl', 'rb') as input2:
+    pts_rgb = pickle.load(input2)
+
 Ra, Ra_rgb = get_ball_reference(pts_depth, pts_rgb)
 # cv2.imshow("1", imutils.resize(Ra, height=320))
 sleep(0)
@@ -125,6 +129,19 @@ while 1:
     cv2.imshow("5", imutils.resize(img_depth, height=320))
 
     max_cnt_idx, max_cnt, img_rgb = get_white_ball(img_rgb, img_depth, contours)
+
+    #print(max_cnt)
+    if max_cnt is not None:
+        if cv2.contourArea(max_cnt) > 110:
+
+            (x, y), radius = cv2.minEnclosingCircle(max_cnt)
+            center = (int(x), int(y))
+            radius = int(radius)
+            #img = cv2.drawContours(img, max_cnt, -1, 255, 1)
+            #img = cv2.circle(img, center, radius + 3, 255, 1)
+            #img = cv2.rectangle(img, (int(x - 1), int(y - 1)), (int(x + 1), int(y + 1)), 255)
+            print(center, radius)
+
 
     cv2.imshow("6", imutils.resize(img_rgb, height=320))
 
