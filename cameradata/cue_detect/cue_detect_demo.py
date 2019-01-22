@@ -28,8 +28,8 @@ def get_cue_reference(pts):
     return img
 
 
-def get_cue_diff(curr_frame_depth, Qa):
-    return cv2.absdiff(curr_frame_depth, Qa)
+def get_cue_diff(pts, Qa):
+    return cv2.absdiff(get_depth(pts), Qa)
 
 
 def max_cnt_area(contours):
@@ -81,7 +81,7 @@ def get_req_contours(contours):
 
 
 def get_HoughLines(thres_img):
-    lines = cv2.HoughLines(thres_img, 1, 5 * np.pi / 180, 80)
+    lines = cv2.HoughLines(closing, 1, 5 * np.pi / 180, 80)
 
     avg_x1 = 0
     avg_x2 = 0
@@ -105,7 +105,7 @@ def get_HoughLines(thres_img):
                 avg_y2 += y2
                 n += 1
 
-                #cv2.line(img, (x1, y1), (x2, y2), 255, 2)
+                cv2.line(img, (x1, y1), (x2, y2), 255, 2)
 
         avg_x1 = int(avg_x1 / n)
         avg_x2 = int(avg_x2 / n)
@@ -118,7 +118,7 @@ def get_HoughLines(thres_img):
 def get_HoughLinesP(thres_img):
     minLineLength = 50
     maxLineGap = 15
-    lines = cv2.HoughLinesP(thres_img, 1, np.pi / 180, 80, minLineLength, maxLineGap)
+    lines = cv2.HoughLinesP(closing, 1, np.pi / 180, 80, minLineLength, maxLineGap)
 
     avg_x1 = 0
     avg_x2 = 0
@@ -133,7 +133,7 @@ def get_HoughLinesP(thres_img):
                 avg_y1 += y1
                 avg_y2 += y2
                 n += 1
-                #cv2.line(img, (x1, y1), (x2, y2), 0, 1)
+                cv2.line(img, (x1, y1), (x2, y2), 0, 1)
 
         avg_x1 = int(avg_x1 / n)
         avg_x2 = int(avg_x2 / n)
@@ -143,10 +143,19 @@ def get_HoughLinesP(thres_img):
         return [(avg_x1, avg_y1), (avg_x2, avg_y2)]
 
 
-def cue_det(curr_frame_depth, pts_depth, Qa, M, N, wht_center):
-    global reflections, cue_line
+with open('../../sys_setup/pts_depth.pkl', 'rb') as input:
+    pts = pickle.load(input)
 
-    cueFrame = get_cue_diff(curr_frame_depth, Qa)
+with open('../../sys_setup/pts_rgb.pkl', 'rb') as input2:
+    pts_rgb = pickle.load(input2)
+
+M = int(pts[1][0] - pts[0][0])
+N = int(M/2)
+Qa = get_cue_reference(pts)
+# cv2.imshow("1", imutils.resize(Qa, height=320))
+imgrgb = get_video(pts_rgb)
+while 1:
+    cueFrame = get_cue_diff(pts, Qa)
     # cv2.imshow("2", imutils.resize(cueFrame, height=320))
 
     Tc = 0.0001 * 65535
@@ -158,7 +167,7 @@ def cue_det(curr_frame_depth, pts_depth, Qa, M, N, wht_center):
 
     cnt_image = np.zeros(cueFrame.shape, np.uint8)
     cnt_image_2 = cnt_image.copy()
-    #cnt_image_all = cv2.drawContours(cnt_image, contours, -1, 255, 1)
+    cnt_image_all = cv2.drawContours(cnt_image, contours, -1, 255, 1)
 
     # cv2.imshow("4", imutils.resize(cnt_image_all, height=320))
 
@@ -166,68 +175,41 @@ def cue_det(curr_frame_depth, pts_depth, Qa, M, N, wht_center):
     cnt_image_req = cv2.drawContours(cnt_image_2, req_cnt, -1, 255, 1)
     kernel = np.ones((8, 8), np.uint8)
     closing = cv2.morphologyEx(cnt_image_req, cv2.MORPH_CLOSE, kernel)
-    #cv2.imshow("5", imutils.resize(closing, height=320))
+    cv2.imshow("5", imutils.resize(closing, height=320))
     # print(len(contours), ",", len(req_cnt))
 
-    img = get_depth(pts_depth)
+    img = get_depth(pts)
     img_final = img.copy()
-    # img_final = cv2.resize(img_final, (cueFrame.shape[1], cueFrame.shape[0]))
+    #img_final = cv2.resize(img_final, (cueFrame.shape[1], cueFrame.shape[0]))
 
     linesP = get_HoughLinesP(closing)
 
-    lines = get_HoughLines(closing)
-    cue_line = lines
-    #cv2.imshow("6", imutils.resize(img, height=320))
 
-    #cv2.line(img_final, lines[0], lines[1], 255, 1)
-    wht_center_x = wht_center[0]
-    wht_center_y = wht_center[1]
+    lines = get_HoughLines(closing)
+
+
+
+    cv2.imshow("6", imutils.resize(img, height=320))
+
+    cv2.line(img_final, lines[0], lines[1], 255, 1)
+
     try:
-        reflections = get_wall_collisions(4, 12, M, N, wht_center_x, wht_center_y, cue_h_prob=linesP, cue_h_norm=lines)
+        reflections = get_wall_collisions(4, 12, M, N, 278, 83, cue_h_prob=linesP, cue_h_norm=lines)
     except ZeroDivisionError:
         reflections = []
 
-    #for i in range(1, len(reflections)):
-        #cv2.line(img_final, reflections[i - 1], reflections[i], 0, 2)
-        #x = reflections[i - 1][0]
-        #y = reflections[i - 1][1]
-        #cv2.circle(img_final, (x, y), 12, 0, -1)
-        #print(2, 12, M, N, 136, 114, linesP, lines)
-        #print(x, y)
-
-    #cv2.imshow("7", imutils.resize(img_final, height=320))
-    return reflections, cue_line
+    for i in range(1, len(reflections)):
+        cv2.line(img_final, reflections[i-1], reflections[i], 0, 2)
+        x = reflections[i-1][0]
+        y = reflections[i-1][1]
+        cv2.circle(img_final, (x, y), 12, 0, -1)
+        print(2, 12, M, N, 136, 114, linesP, lines)
+        print(x, y)
 
 
-if __name__ == "__main__":
+    cv2.imshow("7", imutils.resize(img_final, height=320))
 
-    with open('../../sys_setup/pts_depth.pkl', 'rb') as input:
-        pts_depth = pickle.load(input)
-
-    with open('../../sys_setup/pts_rgb.pkl', 'rb') as input2:
-        pts_rgb = pickle.load(input2)
-
-    M = int(pts_depth[1][0] - pts_depth[0][0])
-    N = abs(int(pts_depth[2][0] - pts_depth[0][0]))
-    Qa = get_cue_reference(pts_depth)
-    # cv2.imshow("1", imutils.resize(Qa, height=320))
-    imgrgb = get_video(pts_rgb)
-    wht_center = (177, 105)
-    while 1:
-        curr_frame_depth = get_depth(pts_depth)
-        img_final = curr_frame_depth.copy()
-        reflections, cue_line = cue_det(curr_frame_depth, pts_depth, Qa, M, N, wht_center)
-
-        for i in range(1, len(reflections)):
-            cv2.line(img_final, reflections[i-1], reflections[i], 0, 2)
-            x = reflections[i-1][0]
-            y = reflections[i-1][1]
-            cv2.circle(img_final, (x, y), 12, 0, -1)
-        if len(reflections) > 0:
-            cv2.line(img_final, cue_line[0], cue_line[1], 0, 2)
-        cv2.imshow("7", imutils.resize(img_final, height=320))
-
-        k = cv2.waitKey(5) & 0xFF
-        if k == 27:
-            break
-    cv2.destroyAllWindows()
+    k = cv2.waitKey(5) & 0xFF
+    if k == 27:
+        break
+cv2.destroyAllWindows()

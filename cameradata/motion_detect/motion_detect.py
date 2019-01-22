@@ -30,13 +30,13 @@ with open('../../sys_setup/pts_depth.pkl', 'rb') as input:
 
 M = pts[1][0] - pts[0][0]
 print(M)
-Np = 8
+Np = 5
 imageQ = queue.Queue(maxsize=Np)
 wt = 0  # 0 is no motion, 1 is motion at t
 wt_1 = 0  # 0 is no motion, 1 is motion at t_1
 Kt = 0  # Counter
-K1 = 900  # 0.7 * M
-K2 = 3
+K1 = 300  # 0.7 * M
+K2 = 2
 print(K1)
 while 1:
     #cv2.imshow("origDepth", imutils.resize(get_depth(pts), height=320))
@@ -50,7 +50,7 @@ while 1:
         # noinspection PyTypeChecker
         motionMat += cv2.absdiff(qlist(imageQ)[Np - 1], qlist(imageQ)[i])
 
-    Tm = 0.0015 * 65535
+    Tm = 0.0013 * 65535
     motionBin = np.zeros(motionMat.shape)
     motionBin[motionMat >= Tm] = 1
 

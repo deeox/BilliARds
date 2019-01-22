@@ -151,24 +151,31 @@ def ball_det(curr_frame_depth, curr_frame_rgb, Ra):
     return cent_depth, rad_depth
 
 if __name__ == "__main__":
-    with open('../sys_setup/pts_depth.pkl', 'rb') as input1:
+    with open('../../sys_setup/pts_depth.pkl', 'rb') as input1:
         pts_depth = pickle.load(input1)
 
-    with open('../sys_setup/pts_rgb.pkl', 'rb') as input2:
+    with open('../../sys_setup/pts_rgb.pkl', 'rb') as input2:
         pts_rgb = pickle.load(input2)
 
     x = get_depth(pts_depth)
-    Ra = cv2.imread('../sys_setup/ref_depth_no_balls.png')
+    Ra = cv2.imread('../../sys_setup/ref_depth_no_balls.png')
     Ra = Ra[:, :, 0]
-    Ra_rgb = cv2.imread('../sys_setup/ref_rgb_no_balls.png')
+    Ra_rgb = cv2.imread('../../sys_setup/ref_rgb_no_balls.png')
 
     while 1:
 
         curr_frame_depth, curr_frame_rgb = get_depth(pts_depth), get_video(pts_rgb)
+        img_d = curr_frame_depth.copy()
         cent_depth, rad_depth = ball_det(curr_frame_depth, curr_frame_rgb, Ra)
         print(len(cent_depth))
         print(cent_depth[0])
 
+        for cent in cent_depth:
+            if cent != cent_depth[0]:
+                for rad in rad_depth:
+                    cv2.circle(img_d, cent, rad +3, 0, 2)
+        cv2.circle(img_d, cent_depth[0], rad_depth[0] + 3, 0, -1)
+        cv2.imshow("ball_det Demo", imutils.resize(img_d, height=250))
         k = cv2.waitKey(5) & 0xFF
         if k == 27:
             break
