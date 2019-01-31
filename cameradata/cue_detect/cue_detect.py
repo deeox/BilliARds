@@ -81,7 +81,7 @@ def get_req_contours(contours):
 
 
 def get_HoughLines(thres_img):
-    lines = cv2.HoughLines(thres_img, 1, 5 * np.pi / 180, 80)
+    lines = cv2.HoughLines(thres_img, 1, 5 * np.pi / 180, 70)
 
     avg_x1 = 0
     avg_x2 = 0
@@ -118,7 +118,7 @@ def get_HoughLines(thres_img):
 def get_HoughLinesP(thres_img):
     minLineLength = 50
     maxLineGap = 15
-    lines = cv2.HoughLinesP(thres_img, 1, np.pi / 180, 80, minLineLength, maxLineGap)
+    lines = cv2.HoughLinesP(thres_img, 1, np.pi / 180, 70, minLineLength, maxLineGap)
 
     avg_x1 = 0
     avg_x2 = 0
@@ -147,12 +147,12 @@ def cue_det(curr_frame_depth, pts_depth, Qa, M, N, wht_center):
     global reflections, cue_line
 
     cueFrame = get_cue_diff(curr_frame_depth, Qa)
-    # cv2.imshow("2", imutils.resize(cueFrame, height=320))
+    #cv2.imshow("2", imutils.resize(cueFrame, height=320))
 
     Tc = 0.0001 * 65535
     cueBin = np.zeros(cueFrame.shape, np.uint8)
     cueBin[cueFrame > Tc] = 255
-    # cv2.imshow("3", imutils.resize(cueBin, height=320))
+    #cv2.imshow("3", imutils.resize(cueBin, height=320))
 
     contours, hierarchy = cv2.findContours(cueBin, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -168,9 +168,6 @@ def cue_det(curr_frame_depth, pts_depth, Qa, M, N, wht_center):
     closing = cv2.morphologyEx(cnt_image_req, cv2.MORPH_CLOSE, kernel)
     #cv2.imshow("5", imutils.resize(closing, height=320))
     # print(len(contours), ",", len(req_cnt))
-
-    img = get_depth(pts_depth)
-    img_final = img.copy()
     # img_final = cv2.resize(img_final, (cueFrame.shape[1], cueFrame.shape[0]))
 
     linesP = get_HoughLinesP(closing)
@@ -207,12 +204,12 @@ if __name__ == "__main__":
     with open('../../sys_setup/pts_rgb.pkl', 'rb') as input2:
         pts_rgb = pickle.load(input2)
 
-    M = int(pts_depth[1][0] - pts_depth[0][0])
-    N = abs(int(pts_depth[2][0] - pts_depth[0][0]))
+    M = abs(int(pts_depth[1][0] - pts_depth[0][0]))
+    N = abs(int(pts_depth[3][1] - pts_depth[0][1]))
     Qa = get_cue_reference(pts_depth)
     # cv2.imshow("1", imutils.resize(Qa, height=320))
     imgrgb = get_video(pts_rgb)
-    wht_center = (177, 105)
+    wht_center = (196, 84)
     while 1:
         curr_frame_depth = get_depth(pts_depth)
         img_final = curr_frame_depth.copy()

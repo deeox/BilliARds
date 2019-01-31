@@ -81,7 +81,7 @@ def get_req_contours(contours):
 
 
 def get_HoughLines(thres_img):
-    lines = cv2.HoughLines(closing, 1, 5 * np.pi / 180, 80)
+    lines = cv2.HoughLines(closing, 1, 5 * np.pi / 180, 60)
 
     avg_x1 = 0
     avg_x2 = 0
@@ -118,7 +118,7 @@ def get_HoughLines(thres_img):
 def get_HoughLinesP(thres_img):
     minLineLength = 50
     maxLineGap = 15
-    lines = cv2.HoughLinesP(closing, 1, np.pi / 180, 80, minLineLength, maxLineGap)
+    lines = cv2.HoughLinesP(closing, 1, np.pi / 180, 60, minLineLength, maxLineGap)
 
     avg_x1 = 0
     avg_x2 = 0
@@ -144,18 +144,18 @@ def get_HoughLinesP(thres_img):
 
 
 with open('../../sys_setup/pts_depth.pkl', 'rb') as input:
-    pts = pickle.load(input)
+    pts_depth = pickle.load(input)
 
 with open('../../sys_setup/pts_rgb.pkl', 'rb') as input2:
     pts_rgb = pickle.load(input2)
 
-M = int(pts[1][0] - pts[0][0])
-N = int(M/2)
-Qa = get_cue_reference(pts)
+M = abs(int(pts_depth[1][0] - pts_depth[0][0]))
+N = abs(int(pts_depth[3][1] - pts_depth[0][1]))
+Qa = get_cue_reference(pts_depth)
 # cv2.imshow("1", imutils.resize(Qa, height=320))
 imgrgb = get_video(pts_rgb)
 while 1:
-    cueFrame = get_cue_diff(pts, Qa)
+    cueFrame = get_cue_diff(pts_depth, Qa)
     # cv2.imshow("2", imutils.resize(cueFrame, height=320))
 
     Tc = 0.0001 * 65535
@@ -178,7 +178,7 @@ while 1:
     cv2.imshow("5", imutils.resize(closing, height=320))
     # print(len(contours), ",", len(req_cnt))
 
-    img = get_depth(pts)
+    img = get_depth(pts_depth)
     img_final = img.copy()
     #img_final = cv2.resize(img_final, (cueFrame.shape[1], cueFrame.shape[0]))
 
@@ -194,7 +194,7 @@ while 1:
     cv2.line(img_final, lines[0], lines[1], 255, 1)
 
     try:
-        reflections = get_wall_collisions(4, 12, M, N, 278, 83, cue_h_prob=linesP, cue_h_norm=lines)
+        reflections = get_wall_collisions(4, 13, M, N, 228, 66, cue_h_prob=linesP, cue_h_norm=lines)
     except ZeroDivisionError:
         reflections = []
 
@@ -203,8 +203,8 @@ while 1:
         x = reflections[i-1][0]
         y = reflections[i-1][1]
         cv2.circle(img_final, (x, y), 12, 0, -1)
-        print(2, 12, M, N, 136, 114, linesP, lines)
-        print(x, y)
+        #print(2, 12, M, N, 136, 114, linesP, lines)
+        #print(x, y)
 
 
     cv2.imshow("7", imutils.resize(img_final, height=320))

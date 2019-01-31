@@ -120,7 +120,7 @@ class Ball:
 def get_wall_collisions(number_of_collisions, radius, table_length, table_breadth, cue_ball_x, cue_ball_y, cue_h_prob,
                         cue_h_norm):
     collision_cord = []
-    tuning_center_ball = 0.5 * radius
+    tuning_center_ball = 1.5 * radius
     if cue_h_norm and cue_h_prob is not None:
         cue_stick_x1 = cue_h_prob[0][0]
         cue_stick_y1 = cue_h_prob[0][1]

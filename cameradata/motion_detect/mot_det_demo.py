@@ -36,8 +36,7 @@ wt = 0  # 0 is no motion, 1 is motion at t
 wt_1 = 0  # 0 is no motion, 1 is motion at t_1
 Kt = 0  # Counter
 K1 = 400  # 0.7 * M
-K2_up = 2
-K2_down = 8
+K2 = 8
 print(K1)
 while 1:
     #cv2.imshow("origDepth", imutils.resize(get_depth(pts), height=320))
@@ -60,33 +59,33 @@ while 1:
 
     if wt == 0:
         # to detect when motion starts
-        if Cmt > K1 and Kt < K2_up:
+        if Cmt > K1 and Kt < K2:
             Kt += 1
-        elif Cmt < K1 and 0 < Kt < K2_up:
+        elif Cmt < K1 and 0 < Kt < K2:
             Kt -= 1
             if Kt < 0:
                 Kt = 0
-        elif Kt == K2_up:
+        elif Kt == K2:
             wt = 1
             Kt = 0
     elif wt == 1:
-        if Cmt < K1 and Kt < K2_down:
+        if Cmt < K1 and Kt < K2:
             Kt += 1
-        elif Cmt > K1 and 0 < Kt < K2_down:
+        elif Cmt > K1 and 0 < Kt < K2:
             Kt -= 1
             if Kt < 0:
                 Kt = 0
-        elif Kt == K2_down:
+        elif Kt == K2:
             if wt_1 == 1:
                 wt = 0
                 Kt = 0
             elif wt_1 == 0:
                 wt = 1
                 Kt = 0
-        elif wt_1 == 0 and Kt < K2_down:
+        elif wt_1 == 0 and Kt < K2:
             wt = 0
             Kt = 0
-        elif wt_1 == 1 and Kt < K2_down:
+        elif wt_1 == 1 and Kt < K2:
             wt = 1
             Kt = 0
 

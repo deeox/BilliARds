@@ -37,7 +37,7 @@ def get_ball_contours(curr_depth, Ra):
     ballFrame = get_ball_diff(curr_depth, Ra)
     # cv2.imshow("2", imutils.resize(ballFrame, height=320))
 
-    Bw = 26
+    Bw = 17.1
     Tb = (13 / 16) * Bw
     ballBin = np.zeros(ballFrame.shape, np.uint8)
     ballBin[ballFrame > Tb] = 255
@@ -175,7 +175,7 @@ if __name__ == "__main__":
                 for rad in rad_depth:
                     cv2.circle(img_d, cent, rad +3, 0, 2)
         cv2.circle(img_d, cent_depth[0], rad_depth[0] + 3, 0, -1)
-        cv2.imshow("ball_det Demo", imutils.resize(img_d, height=250))
+        cv2.imshow("ball_det Demo", imutils.resize(img_d, height=350))
         k = cv2.waitKey(5) & 0xFF
         if k == 27:
             break

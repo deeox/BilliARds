@@ -47,8 +47,6 @@ class Window(Frame):
         manual_button = Button(frame2, text="Manual", command=self.man_calib)
         manual_button.place(x=190, y=40)
 
-
-
     def man_calib(self):
         try:
             self.pts_rgb = get_points(0)

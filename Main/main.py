@@ -1,93 +1,87 @@
 import freenect
+import os
 import pickle
 import queue
-import sys
 import threading
 import time
-import tkinter as tk
-import os
 
 import cv2
 import numpy as np
+import pygame
 
 import cameradata.ball_detect.ball_detect as bd
 import cameradata.cue_detect.cue_detect as cd
 from cameradata.utils.perspTransform import four_point_transform
 
 global wt, strike, centers, reflections, cue_line
+n = 0
 
-class MainApplication(tk.Frame):
-    def __init__(self, parent, *args, **kwargs):
+
+class MainApplication():
+    def __init__(self, pts_depth):
         global wt, strike, centers, reflections, cue_line
-        tk.Frame.__init__(self, parent, *args, **kwargs)
-        self.parent = parent
-        self.canvas = tk.Canvas(self.parent, background="black")
-
-        self.root_2_times_2 = 2.828
-        self.scale = 2
-        self.R = 6
-        self.M = 387 * self.scale
-        self.N = self.M / 2
+        pygame.init()
+        # self.fs = pygame.FULLSCREEN
+        self.pts_depth = pts_depth
+        self.FPS = 1000
+        self.window = pygame.display.set_mode((0, 0))
+        self.clock = pygame.time.Clock()
+        self.window_w, self.window_h = pygame.display.get_surface().get_size()
+        self.M = int(self.pts_depth[1][0] - self.pts_depth[0][0])
+        self.N = int(self.pts_depth[3][1] - self.pts_depth[0][1])
         self.thickness = 5
         self.circle_countour_scale = 1.5
         self.offset = 10
 
+        self.scalex = (self.window_w / self.M)
+        self.scaley = (self.window_h / self.N)
+        self.root_2_times_2 = 2.828
+        self.scale = 2
+        self.R = 40
 
     def GUI(self):
-
-        M = self.M
-        N = self.N
+        window_w = self.window_w
+        window_h = self.window_h
+        window = self.window
+        clock = self.clock
+        FPS = self.FPS
+        radius = self.R
+        blue = (0, 0, 255)
+        black = (0, 0, 0)
+        white = (255, 255, 255)
+        running = True
+        root_2_times_2 = self.root_2_times_2
         offset = self.offset
 
-        self.canvas.pack(fill=tk.BOTH, expand=True)
-        self.canvas.create_rectangle(0 + offset, 0 + offset, M + offset, N + offset, width=1, outline="white")
+        scalex = self.scalex
+        scaley = self.scaley
+        M = self.M
+        N = self.N
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT or event.type == pygame.K_SPACE:
+                    os._exit(0)
 
-        self.draw_balls()
-        self.draw_traj()
+            window.fill(black)
+            pygame.draw.rect(window, white, [0, 0, M * scalex, N * scaley],
+                             self.thickness)
+            for i in range(len(centers)):
+                pygame.draw.circle(window, blue, [int(centers[i][0] * scalex), int(centers[i][1] * scaley)], radius)
 
+            if len(reflections) > 0:
+                pygame.draw.line(window, white, [int(centers[0][0] * scalex), int(centers[0][1] * scaley)],
+                                 [int(reflections[0][0] * scalex), int(reflections[0][1] * scaley)], self.thickness)
 
-        self.parent.attributes("-fullscreen", True)
-        self.parent.bind('c', self.quitApp)
-        self.parent.bind('<Escape>', self.quitApp)
+            for i in range(len(reflections) - 1):
+                pygame.draw.line(window, white, [int(reflections[i][0] * scalex), int(reflections[i][1] * scaley)],
+                                 [int(reflections[i + 1][0] * scalex), int(reflections[i + 1][1] * scaley)],
+                                 self.thickness)
+                pygame.draw.circle(window, white, [int(reflections[i][0] * scalex), int(reflections[i][1] * scaley)],
+                                   radius)
 
-    def draw_balls(self):
-        for i in range(len(centers)):
-            root_2_times_2 = self.root_2_times_2
-            R = self.R
-            offset = self.offset
-            circle_countour_scale = self.circle_countour_scale
-            self.canvas.create_oval(centers[i][0] - root_2_times_2 * circle_countour_scale * R + offset,
-                               centers[i][1] - root_2_times_2 * circle_countour_scale * R + offset,
-                               centers[i][0] + root_2_times_2 * circle_countour_scale * R + offset,
-                               centers[i][1] + root_2_times_2 * circle_countour_scale * R + offset, fill="white", )
-        self.update()
-        self.canvas.pack()
-        self.after(50, self.draw_balls)
-
-    def draw_traj(self):
-        for i in range(len(reflections) - 1):
-            root_2_times_2 = self.root_2_times_2
-            offset = self.offset
-            R = self.R
-            thickness = self.thickness
-            self.canvas.create_line(reflections[i][0] + offset, reflections[i][1] + offset, reflections[i + 1][0] + offset,
-                               reflections[i + 1][1] + offset, fill="blue", width=thickness)
-            self.canvas.create_oval(reflections[i + 1][0] - root_2_times_2 * R + offset,
-                               reflections[i + 1][1] - root_2_times_2 * R + offset,
-                               reflections[i + 1][0] + root_2_times_2 * R + offset,
-                               reflections[i + 1][1] + root_2_times_2 * R + offset, fill="blue", )
-
-        #self.canvas.create_oval(reflections[-1][0] - root_2_times_2 * R + offset,
-        #                   reflections[-1][1] - root_2_times_2 * R + offset,
-        #                   reflections[-1][0] + root_2_times_2 * R + offset,
-        #                   reflections[-1][1] + root_2_times_2 * R + offset, fill="blue", )
-        self.update()
-        self.canvas.pack()
-        self.after(50, self.draw_traj)
-
-
-    @staticmethod
-    def quitApp(event=None):
+            pygame.display.update()
+            clock.tick(FPS)
+        pygame.quit()
         os._exit(0)
 
 
@@ -96,13 +90,14 @@ class MotionDetect(threading.Thread):
         threading.Thread.__init__(self)
 
         self.pts_depth = pts_depth
-        self.Np = 5
+        self.Np = 6
         self.imageQ = queue.Queue(maxsize=self.Np)
         self.wt = 0  # 0 is no motion, 1 is motion at t
         self.wt_1 = 0  # 0 is no motion, 1 is motion at t_1
         self.Kt = 0  # Counter
-        self.K1 = 250  # 0.7 * M
-        self.K2 = 2
+        self.K1 = 400  # 0.7 * M
+        self.K2_up = 2
+        self.K2_down = 8
 
     def get_depth(self):
         array, _ = freenect.sync_get_depth()
@@ -119,8 +114,10 @@ class MotionDetect(threading.Thread):
         wt_1 = self.wt_1  # 0 is no motion, 1 is motion at t_1
         Kt = self.Kt  # Counter
         K1 = self.K1  # 0.7 * M
-        K2 = self.K2
+
         Np = self.Np
+        K2_up = self.K2_up
+        K2_down = self.K2_down
 
         while 1:
             # cv2.imshow("origDepth", imutils.resize(get_depth(pts), height=320))
@@ -134,7 +131,7 @@ class MotionDetect(threading.Thread):
                 # noinspection PyTypeChecker
                 motionMat += cv2.absdiff(self.qlist()[Np - 1], self.qlist()[i])
 
-            Tm = 0.0014 * 65535
+            Tm = 0.00015 * 65535
             motionBin = np.zeros(motionMat.shape)
             motionBin[motionMat >= Tm] = 1
 
@@ -143,33 +140,33 @@ class MotionDetect(threading.Thread):
 
             if wt == 0:
                 # to detect when motion starts
-                if Cmt > K1 and Kt < K2:
+                if Cmt > K1 and Kt < K2_up:
                     Kt += 1
-                elif Cmt < K1 and 0 < Kt < K2:
+                elif Cmt < K1 and 0 < Kt < K2_up:
                     Kt -= 1
                     if Kt < 0:
                         Kt = 0
-                elif Kt == K2:
+                elif Kt == K2_up:
                     wt = 1
                     Kt = 0
             elif wt == 1:
-                if Cmt < K1 and Kt < K2:
+                if Cmt < K1 and Kt < K2_down:
                     Kt += 1
-                elif Cmt > K1 and 0 < Kt < K2:
+                elif Cmt > K1 and 0 < Kt < K2_down:
                     Kt -= 1
                     if Kt < 0:
                         Kt = 0
-                elif Kt == K2:
+                elif Kt == K2_down:
                     if wt_1 == 1:
                         wt = 0
                         Kt = 0
                     elif wt_1 == 0:
                         wt = 1
                         Kt = 0
-                elif wt_1 == 0 and Kt < K2:
+                elif wt_1 == 0 and Kt < K2_down:
                     wt = 0
                     Kt = 0
-                elif wt_1 == 1 and Kt < K2:
+                elif wt_1 == 1 and Kt < K2_down:
                     wt = 1
                     Kt = 0
 
@@ -182,7 +179,7 @@ class MotionDetect(threading.Thread):
 class Process(threading.Thread):
     def __init__(self, pts_depth, pts_rgb, ref_depth_no_balls, ref_rgb_no_balls):
         threading.Thread.__init__(self)
-
+        self.d = 17.1
         self.pts_depth = pts_depth
         self.pts_rgb = pts_rgb
         self.ref_depth_no_balls = ref_depth_no_balls
@@ -190,8 +187,7 @@ class Process(threading.Thread):
         self.curr_frame_depth = self.get_depth()
         self.curr_frame_rgb = self.get_video()
         self.M = int(self.pts_depth[1][0] - self.pts_depth[0][0])
-        self.N = int(self.pts_depth[2][0] - self.pts_depth[0][0])
-
+        self.N = int(self.pts_depth[3][1] - self.pts_depth[0][1])
 
     def get_video(self):
         array, _ = freenect.sync_get_video()
@@ -203,58 +199,74 @@ class Process(threading.Thread):
         array = array.astype(np.uint8)
         return four_point_transform(array, self.pts_depth)
 
-    def ballDetect(self, curr_frame_depth, curr_frame_rgb, Ra):
+    def ballDetect(self, curr_frame_depth, curr_frame_rgb, Ra, d):
         global centers, radii, ref_depth_for_cue
 
-        # curr_frame_depth, curr_frame_rgb, Ra = self.curr_frame_depth, self.curr_frame_rgb, self.curr_frame_depth[:,:,0]
-        cent_depth, rad_depth = bd.ball_det(curr_frame_depth, curr_frame_rgb, Ra)
+        cent_depth, rad_depth = bd.ball_det(curr_frame_depth, curr_frame_rgb, Ra, d)
         centers = cent_depth
         radii = rad_depth
 
         ref_depth_for_cue = self.get_depth()
-        # print(len(cent_depth))
-        # print(cent_depth[0])
-        cv2.destroyAllWindows()
+
         return centers, radii, ref_depth_for_cue
 
     def strikeDetect(self):
-        global strike
+        global strike, ref_depth_for_cue
 
+        if len(centers) > 0 and ref_depth_for_cue is not None and wt != 0:
+            wht_center = centers[0]
+            d = self.d + 20
+
+            roi_curr = curr_frame_depth[int(wht_center[1] - d / 2):int(wht_center[1] + d / 2),
+                       int(wht_center[0] - d / 2):int(wht_center[0] + d / 2)]
+            roi_ref = ref_depth_for_cue[int(wht_center[1] - d / 2):int(wht_center[1] + d / 2),
+                      int(wht_center[0] - d / 2):int(wht_center[0] + d / 2)]
+
+            Sub = cv2.absdiff(roi_curr, roi_ref)
+            Ts = 0.00019 * 65535
+            Bin = np.zeros(Sub.shape, np.uint8)
+            Bin[Sub > Ts] = 255
+
+            Cs, _, _, _ = cv2.sumElems(Bin)
+
+            thres_ar = 300 * np.pi * (d ** 2) / 12
+
+            if Cs > thres_ar:
+                strike = 1
+            else:
+                strike = 0
         strike = 0
-
-        #print(strike)
 
     def cueDetect(self, curr_frame_depth, pts_depth, Qa, M, N, wht_center):
         global reflections, cue_line
-        #reflections, cue_line = [], []
-
         reflections, cue_line = cd.cue_det(curr_frame_depth, pts_depth, Qa, M, N, wht_center)
-
         return reflections, cue_line
 
     def run(self):
-        global wt, strike, centers, reflections, cue_line
+        global wt, strike, centers, reflections, cue_line, ref_depth_for_cue, curr_frame_depth
         wt, strike, centers, reflections, cue_line = 0, 0, [], [], []
         ref_depth_for_cue = None
 
         while 1 and isQFull:
-            curr_frame_depth, curr_frame_rgb = self.get_depth(), self.get_video()
+            curr_frame_depth = self.get_depth()
+            curr_frame_rgb = self.get_video()
 
             if wt == 0:
                 reflections = []
                 centers, radii, ref_depth_for_cue = self.ballDetect(curr_frame_depth, curr_frame_rgb,
-                                                                    self.ref_depth_no_balls)
+                                                                    self.ref_depth_no_balls, self.d)
                 strike = 0
 
             else:
                 if strike == 0:
                     strikedet_thread = threading.Thread(target=self.strikeDetect)
                     strikedet_thread.start()
-                    reflections, cue_line = self.cueDetect(curr_frame_depth, pts_depth, ref_depth_for_cue, self.M, self.N, centers[0])
+                    reflections, cue_line = self.cueDetect(curr_frame_depth, pts_depth, ref_depth_for_cue, self.M,
+                                                           self.N, centers[0])
 
                 if strike == 1:
                     centers, radii, _ = self.ballDetect(curr_frame_depth, curr_frame_rgb,
-                                                        self.ref_depth_no_balls)
+                                                        self.ref_depth_no_balls, self.d)
 
             print(wt, strike, centers[0], len(reflections))
 
@@ -275,8 +287,6 @@ if __name__ == "__main__":
     motiondet_thread.start()
     time.sleep(1)
     process_thread.start()
-
-    root = tk.Tk()
-    app = MainApplication(root)
+    time.sleep(1)
+    app = MainApplication(pts_depth)
     app.GUI()
-    root.mainloop()

@@ -33,11 +33,10 @@ def get_ball_diff(curr_depth, Ra):
     return cv2.absdiff(curr_depth, Ra)
 
 
-def get_ball_contours(curr_depth, Ra):
+def get_ball_contours(curr_depth, Ra, Bw):
     ballFrame = get_ball_diff(curr_depth, Ra)
     # cv2.imshow("2", imutils.resize(ballFrame, height=320))
 
-    Bw = 26
     Tb = (13 / 16) * Bw
     ballBin = np.zeros(ballFrame.shape, np.uint8)
     ballBin[ballFrame > Tb] = 255
@@ -118,12 +117,12 @@ def get_white_ball(img_rgb, img_depth, contours):
     return max_cnt_index, max_cnt, wht_center, wht_radius, img_rgb
 
 
-def ball_det(curr_frame_depth, curr_frame_rgb, Ra):
+def ball_det(curr_frame_depth, curr_frame_rgb, Ra, Bw):
     global cent_depth, cent_rgb
 
     cent_depth, cent_rgb = [], []
     rad_depth, rad_all = [], []
-    contours = get_ball_contours(curr_frame_depth, Ra)
+    contours = get_ball_contours(curr_frame_depth, Ra, Bw)
 
     img_depth = curr_frame_depth
     img_rgb = curr_frame_rgb
@@ -161,11 +160,11 @@ if __name__ == "__main__":
     Ra = cv2.imread('../sys_setup/ref_depth_no_balls.png')
     Ra = Ra[:, :, 0]
     Ra_rgb = cv2.imread('../sys_setup/ref_rgb_no_balls.png')
-
+    Bw = 17.1
     while 1:
 
         curr_frame_depth, curr_frame_rgb = get_depth(pts_depth), get_video(pts_rgb)
-        cent_depth, rad_depth = ball_det(curr_frame_depth, curr_frame_rgb, Ra)
+        cent_depth, rad_depth = ball_det(curr_frame_depth, curr_frame_rgb, Ra, Bw)
         print(len(cent_depth))
         print(cent_depth[0])
 
